@@ -70,7 +70,9 @@ app.post('/api/action/:service/:type', async (req, res) => {
     // If type is 'restart', we simulate making it healthy
     const mode = type === 'restart' || type === 'heal' ? 'healthy' : type;
 
-    await axios.post(`http://${service}-service:${port}/simulate/${mode}`);
+    await axios.post(`http://${service}-service:${port}/simulate/${mode}`, {}, {
+      timeout: 5000
+    });
 
     addActivity(`Manual Action: Triggered ${type} on ${service}`, 'success');
     res.json({ success: true, message: `Executed ${type} on ${service}` });

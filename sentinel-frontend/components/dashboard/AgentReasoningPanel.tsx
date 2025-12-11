@@ -16,7 +16,7 @@ export function AgentReasoningPanel({ incident }: AgentReasoningPanelProps) {
     try {
         parsedReasoning = JSON.parse(incident.reasoning || "{}");
         // If it's the Groq response structure
-        if (parsedReasoning.choices && parsedReasoning.choices[0]) {
+        if (parsedReasoning.choices?.[0]?.message?.content) {
             rawLog = parsedReasoning.choices[0].message.content;
         } else if (parsedReasoning.summary) {
             rawLog = parsedReasoning.summary;

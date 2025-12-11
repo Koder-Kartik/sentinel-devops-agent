@@ -21,7 +21,12 @@ export function useIncidents() {
                 const insightsToProcess = [latestInsight];
 
                 const mappedIncidents: Incident[] = insightsToProcess.map((insight: any) => {
-                    const aiData = insight.analysis ? JSON.parse(insight.analysis) : {};
+                    let aiData: any = {};
+                    try {
+                        aiData = insight.analysis ? JSON.parse(insight.analysis) : {};
+                    } catch (e) {
+                        console.warn("Failed to parse insight analysis:", insight.id);
+                    }
                     const severity = aiData.severity ? aiData.severity.toLowerCase() : "info";
 
                     // Critical/Warning -> Active (Failed)
