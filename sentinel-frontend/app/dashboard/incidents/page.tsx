@@ -13,11 +13,14 @@ export default function IncidentsPage() {
     const [severityFilter, setSeverityFilter] = useState("all");
 
     // Filter Logic
-    const filteredIncidents = incidents.filter(incident => {
-        const matchesSearch = incident.title.toLowerCase().includes(search.toLowerCase()) ||
-            incident.serviceId.toLowerCase().includes(search.toLowerCase()) ||
-            incident.rootCause?.toLowerCase().includes(search.toLowerCase()) ||
-            incident.id.toLowerCase().includes(search.toLowerCase());
+    const query = search.trim().toLowerCase();
+    const filteredIncidents = incidents.filter((incident) => {
+        const matchesSearch =
+            !query ||
+            incident.title.toLowerCase().includes(query) ||
+            incident.serviceId.toLowerCase().includes(query) ||
+            incident.rootCause.toLowerCase().includes(query) ||
+            incident.id.toLowerCase().includes(query);
 
         const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
         const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
