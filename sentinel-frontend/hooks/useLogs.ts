@@ -36,7 +36,7 @@ export function useLogs(initialLogs: LogEntry[] = SAMPLE_LOGS) {
             "Database connection pool at 80%",
             "Payment processing started",
             "Invalid token signature detected",
-            "Hearbeat received from worker-1",
+            "Heartbeat received from worker-1",
             "GC cycle completed",
             "Rate limit exceeded for IP",
         ];
