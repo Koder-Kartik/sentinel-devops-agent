@@ -30,7 +30,7 @@ Automated documentation generation. Aggregates AI insights from Kestra workflows
 
 ## Architecture
 
-```
+```text
 ┌─────────────┐
 │ Sentinel CLI│
 └──────┬──────┘

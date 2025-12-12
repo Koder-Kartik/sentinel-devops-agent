@@ -21,7 +21,9 @@ program
 program
     .command('status')
     .description('Show live health status of all services')
-    .action(showStatus);
+    .action(async () => {
+        await showStatus();
+    });
 
 // Command: sentinel simulate <service> <mode>
 program
@@ -29,9 +31,8 @@ program
     .description('Simulate a failure (e.g., sentinel simulate auth down)')
     .argument('<service>', 'Service name (auth, payment, notification)')
     .argument('<mode>', 'Mode (down, slow, healthy)')
-    .action((service, mode) => {
-        // Map "down" to the backend action logic
-        runAction(service, mode);
+    .action(async (service, mode) => {
+        await runAction(service, mode);
     });
 
 // Command: sentinel heal <service>
@@ -39,14 +40,16 @@ program
     .command('heal')
     .description('Trigger auto-healing for a service')
     .argument('<service>', 'Service name')
-    .action((service) => {
-        runAction(service, 'heal');
+    .action(async (service) => {
+        await runAction(service, 'heal');
     });
 
 // Command: sentinel report
 program
     .command('report')
     .description('Generate AI Incident Report markdown file')
-    .action(generateReport);
+    .action(async () => {
+        await generateReport();
+    });
 
 program.parse(process.argv);

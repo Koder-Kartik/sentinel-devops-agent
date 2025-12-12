@@ -16,20 +16,22 @@ export const showStatus = async () => {
 
     // Added 'Last Updated' column to show per-service update timestamp
     const table = new Table({
-        head: [chalk.white('Service'), chalk.white('Status'), chalk.white('Code'), chalk.white('Last Updated')],
+        head: [chalk.white('Service'), chalk.white('Status'), chalk.white('Code')],
         style: { head: [], border: [] }
     });
 
+    const services = data.services || {};
 
     Object.keys(services).forEach(name => {
-        const s = services[name];
+        const s = services[name] || {};
+        const code = Number(s.code ?? 0);
         let statusColor = chalk.green;
         let statusText = 'HEALTHY';
 
-        if (s.code >= 500) {
+        if (code >= 500) {
             statusColor = chalk.red;
             statusText = 'CRITICAL';
-        } else if (s.code === 0) {
+        } else if (code === 0) {
             statusColor = chalk.yellow;
             statusText = 'UNKNOWN';
         }
@@ -37,12 +39,14 @@ export const showStatus = async () => {
         table.push([
             chalk.bold(name.toUpperCase()),
             statusColor(statusText),
-            s.code
+            code
         ]);
     });
 
     console.log(table.toString());
-    console.log(chalk.gray(`Last Updated: ${new Date(data.lastUpdated).toLocaleString()}`));
+    if (data.lastUpdated) {
+        console.log(chalk.gray(`Last Updated: ${new Date(data.lastUpdated).toLocaleString()}`));
+    }
 };
 
 // 2. ACTION COMMAND (Simulate/Heal)
@@ -66,13 +70,14 @@ export const generateReport = async () => {
         return;
     }
 
-    // Filter and categorize insights
+    // Filter and categorize insights (don't mutate original array)
     const incidents = [];
     const healthyPeriods = [];
     let lastStatus = null;
     let healthyStart = null;
 
-    insights.reverse().forEach((item) => {
+    const chronological = [...insights].reverse();
+    chronological.forEach((item) => {
         const analysis = item.analysis || item.summary || '';
         const isHealthy = analysis.includes('HEALTHY');
         const isCritical = analysis.includes('CRITICAL');
