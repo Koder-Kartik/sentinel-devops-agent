@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useWebSocket } from "./useWebSocket";
+import { WebSocketMessage } from "../lib/websocket";
 
 export type TimeSeriesPoint = {
     timestamp: string;
@@ -36,26 +38,38 @@ export function useMetrics() {
         "api-gateway": { id: "api-gateway", name: "API Gateway", currentResponseTime: 15, currentErrorRate: 0, currentCpu: 12, history: initialHistory },
     });
 
-    const [status, setStatus] = useState<string>("connecting");
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [remoteStatus, setRemoteStatus] = useState<any>({});
 
-    const fetchMetrics = async () => {
-        try {
-            const res = await fetch("http://localhost:4000/api/status");
-            if (!res.ok) throw new Error("Failed to fetch");
-            const data = await res.json();
+    const handleMessage = useCallback((message: WebSocketMessage) => {
+        if (message.type === 'METRICS' || message.type === 'INIT') {
+            if (message.data.services) {
+                setRemoteStatus(message.data.services);
+            }
+        } else if (message.type === 'SERVICE_UPDATE') {
+            setRemoteStatus((prev: any) => ({
+                ...prev,
+                [message.data.name]: message.data
+            }));
+        }
+    }, []);
 
-            setStatus("connected");
+    const { isConnected } = useWebSocket({
+        onMessage: handleMessage
+    });
+
+    // Update metrics loop (visuals + incorporating remote status)
+    useEffect(() => {
+        const updateMetrics = () => {
             const timestamp = new Date().toLocaleTimeString();
 
             setMetrics(prev => {
                 const next = { ...prev };
 
-                // Map backend services to frontend
+                // Map backend services to frontend keys
                 const serviceMap: Record<string, { code?: number } | undefined> = {
-                    "auth-service": data.services?.auth,
-                    "payment-service": data.services?.payment,
-                    "notification-service": data.services?.notification
+                    "auth-service": remoteStatus?.auth,
+                    "payment-service": remoteStatus?.payment,
+                    "notification-service": remoteStatus?.notification
                 };
 
                 Object.keys(next).forEach((key, index) => {
@@ -81,7 +95,7 @@ export function useMetrics() {
                     }
 
                     // If real backend data says it's down (code != 200)
-                    if (backendData && backendData.code !== 200) {
+                    if (backendData && backendData.code !== 200 && backendData.code !== 0) {
                         errorRate = 1.0; // 100% error rate
                         responseTime = 0;
                         cpu = 0;
@@ -108,21 +122,21 @@ export function useMetrics() {
                 });
                 return next;
             });
-
-        } catch (error) {
-            console.error("Error fetching metrics:", error);
-            setStatus("error");
-        }
-    };
-
-    useEffect(() => {
-        fetchMetrics(); // Initial fetch
-        intervalRef.current = setInterval(fetchMetrics, 2000); // Poll every 2s to match Kestra's fast pace via flow
-
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
         };
+
+        const interval = setInterval(updateMetrics, 2000);
+        return () => clearInterval(interval);
+    }, [remoteStatus]);
+
+    // Initial Fetch fallback
+    useEffect(() => {
+        fetch("http://localhost:4000/api/status")
+            .then(res => res.json())
+            .then(data => {
+                if (data.services) setRemoteStatus(data.services);
+            })
+            .catch(e => console.error("Initial metrics fetch failed", e));
     }, []);
 
-    return { metrics, status };
+    return { metrics, status: isConnected ? "connected" : "disconnected" };
 }
