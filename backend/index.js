@@ -158,7 +158,7 @@ app.post('/api/action/:service/:type', async (req, res) => {
     await axios.post(`http://localhost:${port}/simulate/${mode}`, {}, { timeout: 5000 });
 
     // Force a health check to update status immediately
-    checkServiceHealth();
+    await checkServiceHealth();
 
     res.json({ success: true, message: `${type} executed on ${service}` });
   } catch (error) {

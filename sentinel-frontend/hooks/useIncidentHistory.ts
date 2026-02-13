@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Incident, mockIncidents } from "@/lib/mockData";
+import { parseInsight } from "@/lib/parseInsight";
 
 export interface FilterState {
     services: string[];
@@ -131,61 +132,21 @@ export function useIncidentHistory({
 
             // Transform API data to Incident type
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const apiIncidents: Incident[] = (data.insights || []).map((insight: any) => {
-                let aiData: { summary: string } = { summary: "" };
-                const rawAnalysis = insight.analysis || insight.summary || "";
+            const apiIncidents: Incident[] = (data.insights || []).map((insight: any) => parseInsight(insight));
 
-                try {
-                    if (typeof rawAnalysis === 'string' && rawAnalysis.trim().startsWith('{')) {
-                        const parsed = JSON.parse(rawAnalysis);
-                        aiData = parsed;
-                        if (parsed.choices?.[0]?.message?.content) {
-                            aiData.summary = parsed.choices[0].message.content;
-                        }
-                    } else {
-                        aiData = { summary: String(rawAnalysis) };
-                    }
-                } catch {
-                    aiData = { summary: String(rawAnalysis) };
-                }
+            // Conditionally append mocks
+            // TODO: Remove this flag once backend has enough real data
+            const includeMocks = process.env.NEXT_PUBLIC_INCLUDE_MOCK_INCIDENTS === 'true';
 
-                const summaryUpper = (aiData.summary || "").toUpperCase();
-                const isCritical = summaryUpper.includes("CRITICAL") || summaryUpper.includes("FATAL");
-                const isDegraded = summaryUpper.includes("DEGRADED") || summaryUpper.includes("ERROR") || summaryUpper.includes("DOWN");
-
-                let status: "resolved" | "failed" = "resolved";
-                let severity: "info" | "warning" | "critical" = "info";
-
-                if (isCritical) {
-                    status = "failed";
-                    severity = "critical";
-                } else if (isDegraded) {
-                    status = "failed"; // map to failed or in-progress?
-                    severity = "warning";
-                }
-
-                return {
-                    id: insight.id?.toString() || Date.now().toString(),
-                    title: aiData.summary ? aiData.summary.slice(0, 100) + (aiData.summary.length > 100 ? "..." : "") : "System Event",
-                    serviceId: "system", // default since API doesn't always have service
-                    status: status,
-                    severity: severity,
-                    timestamp: insight.timestamp || new Date().toISOString(),
-                    duration: "N/A",
-                    rootCause: "See details",
-                    agentAction: "Monitoring",
-                    agentPredictionConfidence: 0,
-                    timeline: [],
-                    reasoning: aiData.summary || String(rawAnalysis)
-                };
-            });
-
-            // Merge with mock or just use API? 
-            // For now, let's combine them so the table isn't empty if API is empty
-            setIncidents([...apiIncidents, ...extendedMockIncidents]);
+            if (includeMocks) {
+                setIncidents([...apiIncidents, ...extendedMockIncidents]);
+            } else {
+                setIncidents(apiIncidents);
+            }
         } catch (err) {
             console.error(err);
-            // Fallback to mocks
+            // Fallback to mocks if API fails, or empty state?
+            // For now, keep fallback to mocks as safety net during dev
             setIncidents(extendedMockIncidents);
         } finally {
             setIsLoading(false);

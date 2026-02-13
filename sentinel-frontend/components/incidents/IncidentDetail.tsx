@@ -1,7 +1,7 @@
 "use client";
 
 import { Incident } from "@/lib/mockData";
-import { Clock, Zap, Search } from "lucide-react";
+import { Zap, Search } from "lucide-react";
 import { Button } from "@/components/common/Button";
 
 interface IncidentDetailProps {

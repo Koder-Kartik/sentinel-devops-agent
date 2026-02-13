@@ -22,6 +22,9 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
     onMessageRef.current = onMessage;
   }, [onMessage]);
 
+  // Ref to hold connect function for recursion/timeouts
+  const connectRef = useRef<(() => void) | null>(null);
+
   const connect = useCallback(() => {
     if (!enabled) return;
 
@@ -67,7 +70,7 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
         reconnectTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) {
             console.log('🔄 Reconnecting WebSocket...');
-            connect();
+            connectRef.current?.();
           }
         }, reconnectInterval);
       }
@@ -82,6 +85,11 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
     wsRef.current = ws;
   }, [reconnectInterval, enabled]);
 
+  // Update ref whenever connect changes
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
   useEffect(() => {
     isMountedRef.current = true;
     connect();
@@ -94,7 +102,7 @@ export function useWebSocket({ onMessage, reconnectInterval = 3000, enabled = tr
     };
   }, [connect]);
 
-  const sendMessage = useCallback((msg: any) => {
+  const sendMessage = useCallback((msg: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg));
     }

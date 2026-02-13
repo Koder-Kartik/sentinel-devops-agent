@@ -149,7 +149,42 @@ function IncidentsContent() {
                         <Clock className="h-4 w-4" />
                         <span className="text-xs uppercase tracking-wider font-semibold">MTTR</span>
                     </div>
-                    <div className="text-2xl font-bold text-white">12m</div>
+                    <div className="text-2xl font-bold text-white">
+                        {(() => {
+                            const resolvedIncidents = incidents.filter(i => i.status === 'resolved' && i.duration !== 'N/A');
+                            if (resolvedIncidents.length === 0) return "—";
+
+                            // Parse duration if possible, or just use a placeholder logic
+                            // Since duration is string "5m 20s", "15m", "Ongoing", parsing is complex without a helper.
+                            // For this task, let's look for minutes in the string or just return a static average if complex parsing isn't desired.
+                            // But the requirement says "compute MTTR".
+                            // Let's implement a simple parser for "Nm Ns" format.
+
+                            let totalSeconds = 0;
+                            let count = 0;
+
+                            resolvedIncidents.forEach(inc => {
+                                const mMatch = inc.duration.match(/(\d+)m/);
+                                const sMatch = inc.duration.match(/(\d+)s/);
+                                let seconds = 0;
+                                if (mMatch) seconds += parseInt(mMatch[1]) * 60;
+                                if (sMatch) seconds += parseInt(sMatch[1]);
+
+                                if (seconds > 0) {
+                                    totalSeconds += seconds;
+                                    count++;
+                                }
+                            });
+
+                            if (count === 0) return "—";
+                            const avgSeconds = Math.round(totalSeconds / count);
+                            const avgM = Math.floor(avgSeconds / 60);
+                            const avgS = avgSeconds % 60;
+
+                            if (avgM > 0) return `${avgM}m ${avgS}s`;
+                            return `${avgS}s`;
+                        })()}
+                    </div>
                 </div>
             </div>
 

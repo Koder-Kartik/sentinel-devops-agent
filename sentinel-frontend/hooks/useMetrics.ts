@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useWebSocketContext } from "../lib/WebSocketContext";
-import { WebSocketMessage } from "../lib/websocket";
 
 export type TimeSeriesPoint = {
     timestamp: string;
@@ -22,6 +21,20 @@ export type ServiceMetrics = {
     history: TimeSeriesPoint[];
 };
 
+export interface RemoteStatusService {
+    status: string;
+    code: number;
+    lastUpdated?: number | string;
+    [key: string]: unknown;
+}
+
+export interface RemoteStatus {
+    auth?: RemoteStatusService;
+    payment?: RemoteStatusService;
+    notification?: RemoteStatusService;
+    [key: string]: RemoteStatusService | undefined;
+}
+
 export function useMetrics() {
     // Helper for initial history
     const initialHistory = Array(30).fill(0).map((_, i) => ({
@@ -39,7 +52,7 @@ export function useMetrics() {
     });
 
     const { isConnected, lastMessage } = useWebSocketContext();
-    const [remoteStatus, setRemoteStatus] = useState<any>({});
+    const [remoteStatus, setRemoteStatus] = useState<RemoteStatus>({});
 
     // Listen for WebSocket messages from Context
     useEffect(() => {
@@ -47,12 +60,12 @@ export function useMetrics() {
 
         if (lastMessage.type === 'METRICS' || lastMessage.type === 'INIT') {
             if (lastMessage.data.services) {
-                setRemoteStatus(lastMessage.data.services);
+                setRemoteStatus(lastMessage.data.services as unknown as RemoteStatus);
             }
         } else if (lastMessage.type === 'SERVICE_UPDATE') {
-            setRemoteStatus((prev: any) => ({
+            setRemoteStatus((prev) => ({
                 ...prev,
-                [lastMessage.data.name]: lastMessage.data
+                [lastMessage.data.name]: lastMessage.data as unknown as RemoteStatusService
             }));
         }
     }, [lastMessage]);
@@ -66,10 +79,10 @@ export function useMetrics() {
                 const next = { ...prev };
 
                 // Map backend services to frontend keys
-                const serviceMap: Record<string, { code?: number } | undefined> = {
-                    "auth-service": remoteStatus?.auth,
-                    "payment-service": remoteStatus?.payment,
-                    "notification-service": remoteStatus?.notification
+                const serviceMap: Record<string, RemoteStatusService | undefined> = {
+                    "auth-service": remoteStatus.auth,
+                    "payment-service": remoteStatus.payment,
+                    "notification-service": remoteStatus.notification
                 };
 
                 Object.keys(next).forEach((key, index) => {

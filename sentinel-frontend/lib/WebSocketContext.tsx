@@ -1,13 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { WebSocketMessage } from './websocket';
 
 interface WebSocketContextType {
     isConnected: boolean;
     lastMessage: WebSocketMessage | null;
-    sendMessage: (msg: any) => void;
+    sendMessage: (msg: unknown) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);

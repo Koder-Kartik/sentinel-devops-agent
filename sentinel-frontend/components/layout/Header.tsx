@@ -6,7 +6,7 @@ import { SentinelLogo } from "@/components/common/SentinelLogo";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useWebSocketContext } from "@/lib/WebSocketContext";
-import { Activity, Wifi, WifiOff } from "lucide-react";
+import { Wifi, WifiOff } from "lucide-react";
 
 export function Header() {
     const [scrolled, setScrolled] = useState(false);
