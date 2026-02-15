@@ -57,57 +57,66 @@ const MAX_RESTARTS = 3;
 const GRACE_PERIOD_MS = 60 * 1000; // 1 minute
 
 // Continuous health checking
+let isChecking = false;
+
 async function checkServiceHealth() {
-  console.log('🔍 Checking service health...');
-  let hasChanges = false;
+  if (isChecking) return;
+  isChecking = true;
 
-  for (const service of services) {
-    let newStatus, newCode;
-    try {
-      const response = await axios.get(service.url, { timeout: 30000 });
-      console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
-      newStatus = 'healthy';
-      newCode = response.status;
-    } catch (error) {
-      const code = error.response?.status || 503;
-      console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
-      newStatus = code >= 500 ? 'critical' : 'degraded';
-      newCode = code;
-    }
+  try {
+    console.log('🔍 Checking service health...');
+    let hasChanges = false;
 
-    if (
-      systemStatus.services[service.name].status !== newStatus ||
-      systemStatus.services[service.name].code !== newCode
-    ) {
-      const prevStatus = systemStatus.services[service.name].status;
-
-      // Log Status Changes
-      if (newStatus === 'healthy' && prevStatus !== 'healthy' && prevStatus !== 'unknown') {
-        logActivity('success', `Service ${service.name} recovered to HEALTHY`);
-      } else if (newStatus !== 'healthy' && prevStatus !== newStatus) {
-        const severity = newStatus === 'critical' ? 'alert' : 'warn';
-        logActivity(severity, `Service ${service.name} is ${newStatus.toUpperCase()} (Code: ${newCode})`);
+    for (const service of services) {
+      let newStatus, newCode;
+      try {
+        const response = await axios.get(service.url, { timeout: 30000 });
+        console.log(`✅ ${service.name}: ${response.status} - ${response.data.status}`);
+        newStatus = 'healthy';
+        newCode = response.status;
+      } catch (error) {
+        const code = error.response?.status || 503;
+        console.log(`❌ ${service.name}: ERROR - ${error.code || error.message}`);
+        newStatus = code >= 500 ? 'critical' : 'degraded';
+        newCode = code;
       }
 
-      systemStatus.services[service.name] = {
-        status: newStatus,
-        code: newCode,
-        lastUpdated: new Date()
-      };
-      hasChanges = true;
+      if (
+        systemStatus.services[service.name].status !== newStatus ||
+        systemStatus.services[service.name].code !== newCode
+      ) {
+        const prevStatus = systemStatus.services[service.name].status;
 
-      // Broadcast individual service update
-      wsBroadcaster.broadcast('SERVICE_UPDATE', {
-        name: service.name,
-        ...systemStatus.services[service.name]
-      });
+        // Log Status Changes
+        if (newStatus === 'healthy' && prevStatus !== 'healthy' && prevStatus !== 'unknown') {
+          logActivity('success', `Service ${service.name} recovered to HEALTHY`);
+        } else if (newStatus !== 'healthy' && prevStatus !== newStatus) {
+          const severity = newStatus === 'critical' ? 'alert' : 'warn';
+          logActivity(severity, `Service ${service.name} is ${newStatus.toUpperCase()} (Code: ${newCode})`);
+        }
+
+        systemStatus.services[service.name] = {
+          status: newStatus,
+          code: newCode,
+          lastUpdated: new Date()
+        };
+        hasChanges = true;
+
+        // Broadcast individual service update
+        wsBroadcaster.broadcast('SERVICE_UPDATE', {
+          name: service.name,
+          ...systemStatus.services[service.name]
+        });
+      }
     }
-  }
 
-  if (hasChanges) {
-    systemStatus.lastUpdated = new Date();
-    // Broadcast full metrics update
-    wsBroadcaster.broadcast('METRICS', systemStatus);
+    if (hasChanges) {
+      systemStatus.lastUpdated = new Date();
+      // Broadcast full metrics update
+      wsBroadcaster.broadcast('METRICS', systemStatus);
+    }
+  } finally {
+    isChecking = false;
   }
 }
 
