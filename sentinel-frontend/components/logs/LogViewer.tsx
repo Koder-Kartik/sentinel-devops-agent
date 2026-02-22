@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CopyButton } from "@/components/common/CopyButton";
 import { useLogs, LogLevel } from "@/hooks/useLogs";
 import { Search, Filter, Trash2, ShieldAlert, CheckCircle, Info, Ban, Activity } from "lucide-react";
 
@@ -107,27 +108,45 @@ export function LogViewer() {
                                     </span>
                                 </div>
 
-                                <div className="flex-1 space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2">
-                                            {getIcon(log.level)}
-                                            <span className={`text-xs font-bold uppercase tracking-wider ${log.level === 'error' ? 'text-red-400' :
-                                                    log.level === 'warn' ? 'text-amber-400' :
-                                                        log.level === 'success' ? 'text-emerald-400' :
-                                                            'text-blue-400'
-                                                }`}>
-                                                {log.level}
+                                <div className="flex-1 flex items-start justify-between gap-4">
+
+                                    {/* LEFT SIDE — LOG CONTENT */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2">
+                                                {getIcon(log.level)}
+                                                <span
+                                                    className={`text-xs font-bold uppercase tracking-wider ${log.level === "error"
+                                                            ? "text-red-400"
+                                                            : log.level === "warn"
+                                                                ? "text-amber-400"
+                                                                : log.level === "success"
+                                                                    ? "text-emerald-400"
+                                                                    : "text-blue-400"
+                                                        }`}
+                                                >
+                                                    {log.level}
+                                                </span>
+                                            </div>
+
+                                            <span className="text-xs font-medium text-slate-500 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                                {log.service}
                                             </span>
                                         </div>
-                                        <span className="text-xs font-medium text-slate-500 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                                            {log.service}
-                                        </span>
+
+                                        {/* 🔥 YOU LOST THIS PART — PUT IT BACK */}
+                                        <p className="text-sm text-slate-300 font-mono leading-relaxed break-all">
+                                            {log.message}
+                                        </p>
                                     </div>
-                                    <p className="text-sm text-slate-300 font-mono leading-relaxed break-all">
-                                        {log.message}
-                                    </p>
-                                </div>
-                            </div>
+
+                                    {/* RIGHT SIDE — COPY BUTTON */}
+                                    <CopyButton
+                                        text={log.message}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                    />
+                                </div>   {/* flex-1 container */}
+                                </div> 
                         ))
                     )}
                 </div>
